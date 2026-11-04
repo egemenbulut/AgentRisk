@@ -1,8 +1,14 @@
 import json
+from pathlib import Path
 
-# Map each id in factors.jsonl to its risk_level
+# Paths are resolved from the project root, so the script works from any directory
+ROOT_DIR = Path(__file__).resolve().parents[2]
+TRAIN_FILE = ROOT_DIR / "data" / "raw" / "train.jsonl"
+FACTORS_FILE = ROOT_DIR / "data" / "processed" / "factors_train.jsonl"
+
+# Map each id in factors_train.jsonl to its risk_level
 risk_levels = {}
-with open("factors.jsonl", "r", encoding="utf-8") as f:
+with open(FACTORS_FILE, "r", encoding="utf-8") as f:
     for line in f:
         if line.strip():
             row = json.loads(line)
@@ -12,8 +18,8 @@ with open("factors.jsonl", "r", encoding="utf-8") as f:
 missing = []
 mismatch = []
 
-# Check every example in train.jsonl against factors.jsonl
-with open("train.jsonl", "r", encoding="utf-8") as f:
+# Check every example in train.jsonl against factors_train.jsonl
+with open(TRAIN_FILE, "r", encoding="utf-8") as f:
     for line in f:
         if not line.strip():
             continue
