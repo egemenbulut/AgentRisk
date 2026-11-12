@@ -129,17 +129,11 @@ def plot_heatmap(results, test_size, output_dir):
     plt.close(fig)
 
 
-def write_summary(leaderboard, train_size, test_size, output_dir):
-    """Save the champion model summary and the full leaderboard to a text file."""
-    # Champion model (first row of the leaderboard)
-    champion = leaderboard.iloc[0]
+def format_champion(champion):
+    """Format a champion row with its learned weights, tree rules, or feature importances."""
     model = champion["_model"]
     features = champion["_features"]
-
     lines = [
-        f"Train size: {train_size}, Test size: {test_size}",
-        "",
-        "=== Champion Model ===",
         f"Model         : {champion['model']} ({champion['family']})",
         f"Feature subset: {champion['feature_subset']} -> {features}",
         f"Params        : {champion['params']}",
@@ -153,15 +147,35 @@ def write_summary(leaderboard, train_size, test_size, output_dir):
     elif champion["model"] == "DecisionTree":
         # Human-readable split rules of the tree
         lines.append("Tree rules:")
-        lines.append(export_text(model, feature_names=features))
+        lines.append(export_text(model, feature_names=features).rstrip())
     else:
         # Boosted ensembles are too large to list, so show impurity-based importances
         lines.append("Feature importances:")
         lines += [f"  {name}: {imp:.4f}" for name, imp in zip(features, model.feature_importances_)]
+    return lines
+
+
+def write_summary(leaderboard, train_size, test_size, output_dir):
+    """Save the champion model summary and the full leaderboard to a text file."""
+    # Overall champion (first row) and best linear model on all factors
+    overall_champion = leaderboard.iloc[0]
+    linear_all_champion = leaderboard[
+        (leaderboard["family"] == "Positive Linear")
+        & (leaderboard["feature_subset"] == "All Factors")
+    ].iloc[0]
+
+    lines = [
+        f"Train size: {train_size}, Test size: {test_size}",
+        "",
+        "=== Champion Model ===",
+        *format_champion(overall_champion),
+        "",
+        *format_champion(linear_all_champion),
+        "",
+    ]
 
     table = leaderboard.drop(columns=["_config", "_model", "_features"])
     lines += [
-        "",
         "=== Leaderboard ===",
         table.to_string(float_format=lambda x: f"{x:.4f}"),
     ]
