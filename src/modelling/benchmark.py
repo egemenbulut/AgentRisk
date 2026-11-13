@@ -8,23 +8,27 @@ from sklearn.tree import DecisionTreeRegressor, export_text
 
 RANDOM_STATE = 42
 
-# Feature subsets to compare
-FEATURE_SUBSETS = {
-    # Forward selection: factors added one by one in order of their Spearman
-    # correlation with risk_level (f2 > f1 > f7 > f6 > f3 > f5 > f4)
-    "Single Top": ["f2"],
-    "Top-2": ["f2", "f1"],
-    "Top-3": ["f2", "f1", "f7"],
-    "Top-4": ["f2", "f1", "f7", "f6"],
-    "Top-5": ["f2", "f1", "f7", "f6", "f3"],
-    "Top-6": ["f2", "f1", "f7", "f6", "f3", "f5"],
-    "All Factors": ["f1", "f2", "f3", "f4", "f5", "f6", "f7"],
-    # Weakly correlated factors that carry information not shared by f1/f2/f6/f7
-    "Weak Only": ["f3", "f4", "f5"],
-    "f2 + Weak": ["f2", "f3", "f4", "f5"],
+def build_feature_subsets(ranked_factors, n_weak=3):
+    """Derive the feature subsets to compare from the correlation ranking.
+
+    ranked_factors is the list returned by correlation.analyze_correlations,
+    ordered from the strongest to the weakest correlation with risk_level.
+    """
+    top = ranked_factors[0]
+    weak = sorted(ranked_factors[-n_weak:])
+    subsets = {}
+    # Forward selection: factors added one by one in order of their correlation
+    subsets["Single Top"] = ranked_factors[:1]
+    for k in range(2, len(ranked_factors)):
+        subsets[f"Top-{k}"] = ranked_factors[:k]
+    subsets["All Factors"] = sorted(ranked_factors)
+    # Weakly correlated factors that may carry information not shared by the strong ones
+    subsets["Weak Only"] = weak
+    if top not in weak:
+        subsets[f"{top} + Weak"] = [top] + weak
     # Ablation: how well the remaining factors do without the strongest one
-    "All except f2": ["f1", "f3", "f4", "f5", "f6", "f7"],
-}
+    subsets[f"All except {top}"] = sorted(f for f in ranked_factors if f != top)
+    return subsets
 
 
 def build_models():
@@ -60,13 +64,13 @@ def to_risk_level(pred):
     return np.floor(np.clip(pred, 1, 5) + 0.5).astype(int)
 
 
-def evaluate_models(train_df, test_df):
+def evaluate_models(train_df, test_df, feature_subsets):
     """Train and evaluate every model on every feature subset and return one result per scenario."""
     y_train = train_df["risk_level"]
     y_test = test_df["risk_level"]
 
     results = []
-    for subset_name, features in FEATURE_SUBSETS.items():
+    for subset_name, features in feature_subsets.items():
         X_train = train_df[features]
         X_test = test_df[features]
         for family, model_name, params, model in build_models():
@@ -101,13 +105,13 @@ def build_leaderboard(results):
     return leaderboard
 
 
-def plot_heatmap(results, test_size, output_dir):
-    """Save a heatmap of Test MAE: model configuration (rows) x feature subset (columns)."""
+def plot_heatmap(results, feature_subsets, test_size, output_dir, file_name):
+    """Save a heatmap of Test MAE (model configuration x feature subset) as output_dir/<file_name>.png."""
     # Keep the rows in the order the models are defined in build_models
     row_order = list(dict.fromkeys(r["_config"] for r in results))
     heat = pd.DataFrame(results).pivot_table(
         index="_config", columns="feature_subset", values="test_mae", aggfunc="min"
-    ).loc[row_order, list(FEATURE_SUBSETS)]
+    ).loc[row_order, list(feature_subsets)]
     best_mae = heat.values.min()
 
     fig, ax = plt.subplots(figsize=(15, 8))
@@ -125,7 +129,7 @@ def plot_heatmap(results, test_size, output_dir):
     ax.set_title(f"Test MAE by model and feature subset (test size = {test_size})\n"
                  f"Bold = best score ({best_mae:.4f})")
     fig.tight_layout()
-    fig.savefig(output_dir / "benchmark_results.png", dpi=150)
+    fig.savefig(output_dir / f"{file_name}.png", dpi=150)
     plt.close(fig)
 
 
@@ -155,8 +159,8 @@ def format_champion(champion):
     return lines
 
 
-def write_summary(leaderboard, train_size, test_size, output_dir):
-    """Save the champion model summary and the full leaderboard to a text file."""
+def write_summary(leaderboard, train_size, test_size, output_dir, file_name):
+    """Save the champion model summary and the full leaderboard to output_dir/<file_name>.txt."""
     # Overall champion (first row) and best linear model on all factors
     overall_champion = leaderboard.iloc[0]
     linear_all_champion = leaderboard[
@@ -179,11 +183,15 @@ def write_summary(leaderboard, train_size, test_size, output_dir):
         "=== Leaderboard ===",
         table.to_string(float_format=lambda x: f"{x:.4f}"),
     ]
-    (output_dir / "benchmark_summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (output_dir / f"{file_name}.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def run_benchmark(factors_file, output_dir):
-    """Run the full benchmark on factors_file and save the heatmap and summary to output_dir."""
+def run_benchmark(factors_file, ranked_factors, output_dir, heatmap_name, summary_name):
+    """Run the full benchmark on factors_file and save the heatmap and summary to output_dir.
+
+    The feature subsets are derived from ranked_factors (see build_feature_subsets).
+    """
+    feature_subsets = build_feature_subsets(ranked_factors)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Load the factor scores
@@ -194,8 +202,8 @@ def run_benchmark(factors_file, output_dir):
         df, test_size=0.2, stratify=df["risk_level"], random_state=RANDOM_STATE
     )
 
-    results = evaluate_models(train_df, test_df)
+    results = evaluate_models(train_df, test_df, feature_subsets)
     leaderboard = build_leaderboard(results)
-    plot_heatmap(results, len(test_df), output_dir)
-    write_summary(leaderboard, len(train_df), len(test_df), output_dir)
+    plot_heatmap(results, feature_subsets, len(test_df), output_dir, heatmap_name)
+    write_summary(leaderboard, len(train_df), len(test_df), output_dir, summary_name)
     return leaderboard
