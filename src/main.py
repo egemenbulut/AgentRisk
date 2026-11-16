@@ -105,6 +105,7 @@ def main():
         user_template=SFT_USER_TEMPLATE,
         user_template_inputs=SFT_USER_TEMPLATE_INPUTS,
         target_inputs=[],
+        id_key="example_id",
     )
 
     # 9. Test data from the dev split with the direct risk_severity prompt (no target)
@@ -116,6 +117,7 @@ def main():
         user_template=SFT_USER_TEMPLATE,
         user_template_inputs=SFT_USER_TEMPLATE_INPUTS,
         target_inputs=[],
+        id_key="example_id",
     )
 
 if __name__ == "__main__":

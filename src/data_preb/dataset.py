@@ -166,7 +166,7 @@ def merge_factors(train_file, factors_file, output_dir, merged_name):
 
 
 def create_llm_data(input_file, output_dir, output_name, prompt,
-                             user_template, user_template_inputs, target_inputs):
+                             user_template, user_template_inputs, target_inputs, id_key=None):
     """Convert the merged JSONL (input_file) into SFT chat format and save it to output_dir/<output_name>.jsonl.
 
     prompt is the system message. user_template is a format string whose
@@ -174,6 +174,8 @@ def create_llm_data(input_file, output_dir, output_name, prompt,
     target_inputs lists the row columns (in order) that make up the assistant
     content as a one-line JSON string. If target_inputs is empty, no assistant
     message is added (e.g. for inference/test data).
+    If id_key is given, the value of that row column is saved as "id" in front
+    of "messages" so predictions can be matched back to the examples.
     Returns the path of the saved file.
     """
     output_file = output_dir / f"{output_name}.jsonl"
@@ -194,5 +196,7 @@ def create_llm_data(input_file, output_dir, output_name, prompt,
             if target_inputs:
                 target = {key: row[key] for key in target_inputs}
                 messages.append({"role": "assistant", "content": json.dumps(target, ensure_ascii=False)})
-            fout.write(json.dumps({"messages": messages}, ensure_ascii=False) + "\n")
+            record = {"id": row[id_key]} if id_key else {}
+            record["messages"] = messages
+            fout.write(json.dumps(record, ensure_ascii=False) + "\n")
     return output_file
