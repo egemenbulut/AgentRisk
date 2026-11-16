@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from analysis import correlation
+from comparison import base_finetuned_comparison
 from data_preb import dataset
 from modelling import benchmark
 
@@ -10,6 +11,9 @@ ENV_FILE = ROOT_DIR / ".env"
 RAW_DIR = ROOT_DIR / "data" / "raw"
 PROCESSED_DIR = ROOT_DIR / "data" / "processed"
 OUTPUT_DIR = ROOT_DIR / "output"
+CORRELATION_OUTPUT_DIR = OUTPUT_DIR / "correlation"
+BENCHMARK_OUTPUT_DIR = OUTPUT_DIR / "benchmark"
+COMPARISON_OUTPUT_DIR = OUTPUT_DIR / "comparison"
 
 # File names without extension (the modules add .jsonl / .png / .txt)
 TRAIN_NAME = "train"
@@ -21,6 +25,14 @@ RISK_CHART_NAME = "factor_risk_correlation_with_cleaned_data"
 FACTOR_CHART_NAME = "factor_factor_correlation_with_cleaned_data"
 HEATMAP_NAME = "benchmark_results_with_cleaned_data"
 SUMMARY_NAME = "benchmark_summary_with_cleaned_data"
+
+# Base vs. finetuned comparison (prediction files in TEST_DIR vs. the dev gold labels)
+TEST_DIR = ROOT_DIR / "data" / "test"
+COMPARISON_METRICS_CHART_NAME = "comparison_metrics"
+COMPARISON_DISTRIBUTION_CHART_NAME = "comparison_jaccard_distribution"
+COMPARISON_CONFUSION_CHART_NAME = "comparison_severity_confusion"
+COMPARISON_SUMMARY_NAME = "comparison_summary"
+COMPARISON_DETAILS_NAME = "comparison_details"
 
 # SFT data settings
 SFT_SYSTEM_PROMPT = (
@@ -78,11 +90,11 @@ def main():
 
     # 5. Spearman correlation analysis and charts; returns the factors ranked by correlation
     '''_, _, ranked_factors = correlation.analyze_correlations(
-        factors_file, OUTPUT_DIR, RISK_CHART_NAME, FACTOR_CHART_NAME
+        factors_file, CORRELATION_OUTPUT_DIR, RISK_CHART_NAME, FACTOR_CHART_NAME
     )'''
 
     # 6. Model benchmark on feature subsets derived from the ranking: heatmap and summary
-    #benchmark.run_benchmark(factors_file, ranked_factors, OUTPUT_DIR, HEATMAP_NAME, SUMMARY_NAME)
+    #benchmark.run_benchmark(factors_file, ranked_factors, BENCHMARK_OUTPUT_DIR, HEATMAP_NAME, SUMMARY_NAME)
 
     # 7. Convert the merged file into SFT chat format for LLM training
     '''dataset.create_llm_data(
@@ -118,6 +130,20 @@ def main():
         user_template_inputs=SFT_USER_TEMPLATE_INPUTS,
         target_inputs=[],
         id_key="example_id",
+    )
+
+    # 10. Compare every prediction file in TEST_DIR with the dev gold labels (same ids)
+    base_finetuned_comparison.run_comparison(
+        TEST_DIR,
+        dev_file,
+        COMPARISON_OUTPUT_DIR,
+        COMPARISON_METRICS_CHART_NAME,
+        COMPARISON_DISTRIBUTION_CHART_NAME,
+        COMPARISON_CONFUSION_CHART_NAME,
+        COMPARISON_SUMMARY_NAME,
+        COMPARISON_DETAILS_NAME,
+        pred_id_key="id",
+        gold_id_key="example_id",
     )
 
 if __name__ == "__main__":
