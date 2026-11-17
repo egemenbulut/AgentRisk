@@ -1,0 +1,158 @@
+{
+  "version": "synthetic-v1",
+  "seed": 20261117,
+  "base_commit": "c1fd551a13906322f796590f8126168fd7d779de",
+  "counts": {
+    "original_train": 568,
+    "synthetic": 768,
+    "extended": 1336,
+    "core": 760,
+    "dev": 143,
+    "families": 64,
+    "decision_cases": 192
+  },
+  "allowed_domains": [
+    "Privacy / Confidentiality",
+    "Security / System Integrity",
+    "Financial / Assets",
+    "Operational / Service",
+    "Physical / Health",
+    "Legal / Compliance",
+    "Information Quality",
+    "Reputational / Social / Psychological",
+    "Discrimination / Fairness",
+    "Environmental",
+    "No Material Harm"
+  ],
+  "allowed_drivers": [
+    "Risky Requested Outcome",
+    "Untrusted / Conflicting Instructions",
+    "Authorization / Consent Failure",
+    "Insufficient Grounding / Uncertainty",
+    "Scope / Safeguard Failure",
+    "Execution / Action Hazard",
+    "No Material Risk"
+  ],
+  "label_fields": [
+    "risk_domains",
+    "risk_drivers",
+    "risk_severity"
+  ],
+  "original_distribution": {
+    "risk_severity": {
+      "1": 265,
+      "2": 33,
+      "3": 127,
+      "4": 136,
+      "5": 7
+    },
+    "risk_domains": {
+      "Discrimination / Fairness": 1,
+      "Environmental": 2,
+      "Financial / Assets": 53,
+      "Information Quality": 3,
+      "Legal / Compliance": 15,
+      "No Material Harm": 262,
+      "Operational / Service": 44,
+      "Physical / Health": 52,
+      "Privacy / Confidentiality": 180,
+      "Reputational / Social / Psychological": 6,
+      "Security / System Integrity": 65
+    },
+    "risk_drivers": {
+      "Authorization / Consent Failure": 128,
+      "Execution / Action Hazard": 26,
+      "Insufficient Grounding / Uncertainty": 62,
+      "No Material Risk": 262,
+      "Risky Requested Outcome": 14,
+      "Scope / Safeguard Failure": 108,
+      "Untrusted / Conflicting Instructions": 195
+    }
+  },
+  "synthetic_distribution": {
+    "risk_severity": {
+      "1": 256,
+      "2": 56,
+      "3": 220,
+      "4": 224,
+      "5": 12
+    },
+    "risk_domains": {
+      "Discrimination / Fairness": 48,
+      "Environmental": 32,
+      "Financial / Assets": 92,
+      "Information Quality": 180,
+      "Legal / Compliance": 60,
+      "No Material Harm": 256,
+      "Operational / Service": 84,
+      "Physical / Health": 60,
+      "Privacy / Confidentiality": 88,
+      "Reputational / Social / Psychological": 64,
+      "Security / System Integrity": 60
+    },
+    "risk_drivers": {
+      "Authorization / Consent Failure": 132,
+      "Execution / Action Hazard": 100,
+      "Insufficient Grounding / Uncertainty": 216,
+      "No Material Risk": 256,
+      "Risky Requested Outcome": 52,
+      "Scope / Safeguard Failure": 228,
+      "Untrusted / Conflicting Instructions": 76
+    }
+  },
+  "extended_distribution": {
+    "risk_severity": {
+      "1": 521,
+      "2": 89,
+      "3": 347,
+      "4": 360,
+      "5": 19
+    },
+    "risk_domains": {
+      "Discrimination / Fairness": 49,
+      "Environmental": 34,
+      "Financial / Assets": 145,
+      "Information Quality": 183,
+      "Legal / Compliance": 75,
+      "No Material Harm": 518,
+      "Operational / Service": 128,
+      "Physical / Health": 112,
+      "Privacy / Confidentiality": 268,
+      "Reputational / Social / Psychological": 70,
+      "Security / System Integrity": 125
+    },
+    "risk_drivers": {
+      "Authorization / Consent Failure": 260,
+      "Execution / Action Hazard": 126,
+      "Insufficient Grounding / Uncertainty": 278,
+      "No Material Risk": 518,
+      "Risky Requested Outcome": 66,
+      "Scope / Safeguard Failure": 336,
+      "Untrusted / Conflicting Instructions": 271
+    }
+  },
+  "source_sha256": {
+    "data/raw/train.jsonl": "6009f33902294532e67e633d5de5ea283603b5ef8c8d0665ca65e6508674a47c",
+    "data/raw/dev.jsonl": "215717fa6414d58ee150c3c002366a151a6c50ac13a4f33d9ebcdd02c22f1c6b",
+    "experiments/qwen25/scenarios.py": "09e2fcfe749ceedb99fe2948109e132af59e518f42ed157d2962fc340d1cef40"
+  },
+  "exact_train_dev_overlap": 0,
+  "limitations": [
+    "Synthetic labels are not independent human gold annotations.",
+    "768 rows represent 192 decision cases in 64 scenario families, each rendered four times.",
+    "Entity and presentation variants add repetition, not independent evidence.",
+    "No new factor labels f1-f7 are generated.",
+    "No performance improvement is claimed; compare original-only and extended training.",
+    "Exact overlap checks do not prove absence of semantic similarity."
+  ],
+  "output_sha256": {
+    "dev_inference.jsonl": "a5613b34de160281024cd5b4f7ac088e06cf92c0b0091b5e088cb5eb127ae4b7",
+    "provenance.jsonl": "6ce5e0f9faf0333ea5c01a9b6f22f1bf0b41c5d6ddb191626b2196e77edaf924",
+    "review_cases.csv": "624ff9fdf7cd64c4eac13b19e22ac90ca29eeb44e12bef22713467c900c1c5db",
+    "synthetic_train.jsonl": "844c5802f61d2bc3e1bee968246b9ab9b2c7e5f93e9f815500adbaa13387ca31",
+    "train_core_sft.jsonl": "4ffc7aea8031f46f8b79ebc4f419a25f6b92c471a2ae623e428b48f106bbf89f",
+    "train_extended.jsonl": "c89badf00e8fdea365701f220cabff2c3a5eeb7cea9a5e9948734668032dc81d",
+    "train_extended_sft.jsonl": "a57967243772e297cdb4c7672287668fa4c4d615d1b7110cc200c2a877272b8e",
+    "train_original_sft.jsonl": "27ebc5453b7878500e6a81655704995e2cefb6f871ca9716f2e35651152220a7"
+  }
+}

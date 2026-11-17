@@ -1,0 +1,122 @@
+{
+  "schema_valid": true,
+  "originals_unchanged": true,
+  "exact_train_dev_overlap": 0,
+  "synthetic_families": 64,
+  "synthetic_decision_cases": 192,
+  "synthetic_severity": {
+    "1": 256,
+    "4": 224,
+    "3": 220,
+    "2": 56,
+    "5": 12
+  },
+  "similarity_method": "Word five-gram Jaccard on full trajectories; lexical diagnostic only, not a semantic leakage guarantee.",
+  "review_threshold": 0.6,
+  "synthetic_dev_pairs_at_or_above_threshold": 0,
+  "original_train_rows_with_dev_similarity_at_or_above_threshold": 0,
+  "nearest_synthetic_to_dev": [
+    {
+      "id": "SYN-V1-untrusted_tool_output-1-1",
+      "nearest_id": "AGENTRISK-071",
+      "word_5gram_jaccard": 0.003571
+    },
+    {
+      "id": "SYN-V1-untrusted_tool_output-1-2",
+      "nearest_id": "AGENTRISK-071",
+      "word_5gram_jaccard": 0.003571
+    },
+    {
+      "id": "SYN-V1-untrusted_tool_output-3-1",
+      "nearest_id": "AGENTRISK-071",
+      "word_5gram_jaccard": 0.003571
+    },
+    {
+      "id": "SYN-V1-untrusted_tool_output-3-2",
+      "nearest_id": "AGENTRISK-071",
+      "word_5gram_jaccard": 0.003571
+    },
+    {
+      "id": "SYN-V1-untrusted_tool_output-1-3",
+      "nearest_id": "AGENTRISK-071",
+      "word_5gram_jaccard": 0.003559
+    },
+    {
+      "id": "SYN-V1-untrusted_tool_output-3-3",
+      "nearest_id": "AGENTRISK-071",
+      "word_5gram_jaccard": 0.003559
+    },
+    {
+      "id": "SYN-V1-allergen_menu-2-1",
+      "nearest_id": "AGENTRISK-071",
+      "word_5gram_jaccard": 0.003509
+    },
+    {
+      "id": "SYN-V1-allergen_menu-2-3",
+      "nearest_id": "AGENTRISK-071",
+      "word_5gram_jaccard": 0.003509
+    },
+    {
+      "id": "SYN-V1-allergen_menu-4-1",
+      "nearest_id": "AGENTRISK-071",
+      "word_5gram_jaccard": 0.003509
+    },
+    {
+      "id": "SYN-V1-allergen_menu-4-3",
+      "nearest_id": "AGENTRISK-071",
+      "word_5gram_jaccard": 0.003509
+    }
+  ],
+  "nearest_original_to_dev": [
+    {
+      "id": "AGENTRISK-059",
+      "nearest_id": "AGENTRISK-051",
+      "word_5gram_jaccard": 0.073955
+    },
+    {
+      "id": "AGENTRISK-176",
+      "nearest_id": "AGENTRISK-051",
+      "word_5gram_jaccard": 0.036072
+    },
+    {
+      "id": "AGENTRISK-588",
+      "nearest_id": "AGENTRISK-051",
+      "word_5gram_jaccard": 0.034417
+    },
+    {
+      "id": "AGENTRISK-405",
+      "nearest_id": "AGENTRISK-704",
+      "word_5gram_jaccard": 0.03104
+    },
+    {
+      "id": "AGENTRISK-672",
+      "nearest_id": "AGENTRISK-320",
+      "word_5gram_jaccard": 0.029703
+    },
+    {
+      "id": "AGENTRISK-281",
+      "nearest_id": "AGENTRISK-358",
+      "word_5gram_jaccard": 0.029042
+    },
+    {
+      "id": "AGENTRISK-074",
+      "nearest_id": "AGENTRISK-365",
+      "word_5gram_jaccard": 0.028891
+    },
+    {
+      "id": "AGENTRISK-576",
+      "nearest_id": "AGENTRISK-033",
+      "word_5gram_jaccard": 0.028322
+    },
+    {
+      "id": "AGENTRISK-030",
+      "nearest_id": "AGENTRISK-526",
+      "word_5gram_jaccard": 0.027871
+    },
+    {
+      "id": "AGENTRISK-410",
+      "nearest_id": "AGENTRISK-482",
+      "word_5gram_jaccard": 0.026559
+    }
+  ]
+}
