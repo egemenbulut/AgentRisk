@@ -125,17 +125,55 @@ def plot_metrics(summary, output_dir, file_name):
 
 
 def plot_jaccard_distribution(details_by_model, output_dir, file_name):
-    """Save box plots of the per-example Jaccard scores per model as output_dir/<file_name>.png."""
+    """Save bubble plots of the per-example Jaccard scores per model as output_dir/<file_name>.png.
+
+    Jaccard scores take only a few discrete values (0, 1/3, 0.5, 1, ...), so each
+    distinct value is drawn as a bubble whose area and color show the share of
+    examples with that score; the count and share are written next to it and the
+    model mean is marked with a red diamond.
+    """
     models = list(details_by_model)
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5.5))
+    max_bubble_area = 2500  # marker area (pt^2) of a value held by 100% of the examples
+    fig, axes = plt.subplots(1, 2, figsize=(7 * 2, 7))
     for ax, metric in zip(axes, ["domains_jaccard", "drivers_jaccard"]):
-        data = [details_by_model[m][metric].values for m in models]
-        ax.boxplot(data, showmeans=True)
-        ax.set_xticks(range(1, len(models) + 1), models, rotation=20, ha="right")
-        ax.set_ylim(-0.05, 1.05)
+        for x, model in enumerate(models):
+            scores = details_by_model[model][metric].round(3)
+            counts = scores.value_counts().sort_index()
+            shares = counts / counts.sum()
+            scatter = ax.scatter(
+                np.full(len(counts), x),
+                counts.index,
+                s=shares * max_bubble_area,
+                c=shares,
+                cmap="viridis_r",
+                vmin=0,
+                vmax=1,
+                alpha=0.8,
+                edgecolors="black",
+                linewidths=0.5,
+                zorder=2,
+            )
+            for value, count, share in zip(counts.index, counts.values, shares.values):
+                ax.annotate(
+                    f"{count} ({share:.0%})",
+                    (x, value),
+                    xytext=(np.sqrt(share * max_bubble_area) / 2 + 4, 0),
+                    textcoords="offset points",
+                    va="center",
+                    fontsize=8,
+                )
+            ax.scatter(x, scores.mean(), marker="D", color="red", s=40, zorder=3,
+                       label="mean" if x == 0 else None)
+        ax.set_xticks(range(len(models)), models, rotation=20, ha="right")
+        ax.set_xlim(-0.5, len(models) - 0.3)
+        ax.set_ylim(-0.08, 1.08)
+        ax.set_ylabel("Jaccard score")
+        ax.grid(axis="y", alpha=0.3, zorder=0)
+        ax.legend(loc="upper left", fontsize=8)
         ax.set_title(f"Per-example {METRIC_LABELS[metric]}")
-    fig.tight_layout()
-    fig.savefig(output_dir / f"{file_name}.png", dpi=150)
+    fig.colorbar(scatter, ax=axes, label="Share of examples", shrink=0.8)
+    fig.suptitle("Distribution of per-example Jaccard scores (bubble size = share of examples)")
+    fig.savefig(output_dir / f"{file_name}.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -195,7 +233,7 @@ def run_comparison(
 
     Outputs written to output_dir:
       - <metrics_chart_name>.png:      bar chart of MAE / Jaccard per model
-      - <distribution_chart_name>.png: per-example Jaccard box plots
+      - <distribution_chart_name>.png: per-example Jaccard bubble plots
       - <confusion_chart_name>.png:    risk_severity confusion matrices
       - <summary_name>.txt:            metric table
       - <details_name>.csv:            per-example scores of every model
