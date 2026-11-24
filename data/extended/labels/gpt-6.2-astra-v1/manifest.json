@@ -1,0 +1,45 @@
+{
+  "annotation_type": "model-generated weak labels",
+  "annotator_model": "gpt-6.2-astra",
+  "reasoning_effort": "low",
+  "annotation_date": "2026-11-24",
+  "source_commit": "a6a6fefe20787a0f9eca27997cbf44f1738243d9",
+  "sources": {
+    "agent_auditor": {
+      "file": "agent_auditor_dataset.jsonl",
+      "sha256": "f6073be130d2df390152a296df578f8e788b40bfc3444291980b5d832ed57896",
+      "rows": 5985,
+      "distinct_cases": 2576,
+      "distinct_with_labels": 2120,
+      "rows_with_labels_including_duplicates": 5030
+    },
+    "r_judge": {
+      "file": "r_judge_dataset.jsonl",
+      "sha256": "277c690723a76954d3372df059c00da58be074f3d162699475884383a8a111c2",
+      "rows": 571,
+      "distinct_cases": 568,
+      "distinct_with_labels": 529,
+      "rows_with_labels_including_duplicates": 532
+    }
+  },
+  "unique_cases": 2583,
+  "in_both_sources": 561,
+  "labeled": 2125,
+  "abstained": 201,
+  "unlabeled": 112,
+  "missing_action": 145,
+  "labeled_needing_review": 324,
+  "eligible_for_default_export": 1801,
+  "limited_view_labeled": 163,
+  "reviewed_by_human": false,
+  "independent_second_model_labels": false,
+  "severity_counts": {
+    "1": 1216,
+    "2": 259,
+    "3": 377,
+    "4": 260,
+    "5": 13
+  },
+  "annotations_sha256": "d42c827b777450505dc1e0bb34aa5e22e77a8653d6cf987259e7204f2db3c25c",
+  "rubric_sha256": "d71957cb655a63f28288e3b3f908879f76d993ff1659ed4a350cd42a75bf25a8"
+}
