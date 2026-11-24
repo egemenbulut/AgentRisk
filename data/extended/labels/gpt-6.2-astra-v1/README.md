@@ -18,6 +18,10 @@ This is the first model annotation pass over Egemen’s November 23 AgentAuditor
 
 AgentAuditor contributes 5,985 source rows and 2,576 distinct pairs. R-Judge contributes 571 source rows and 568 distinct pairs. The cross-source overlap makes a random split by source file unsuitable for evaluation. Training and validation splits should keep each case ID together. Similar but nonidentical cases may also need grouping.
 
+## Manual review
+
+Download the [review workbook for the 112 unlabeled cases](AgentRisk-112-manual-review.xlsx). Each row links to the original trajectory and proposed action and has editable fields for severity, domains, drivers, reviewer, and notes. Use the stable case ID to match completed reviews to `annotations.jsonl`. The workbook’s **Rubric** tab includes the scoring criteria and instructions for reading large source files locally.
+
 ## Annotation method
 
 The labeling agents were explicitly configured as `gpt-6.2-astra` with low reasoning effort. Each assigned case was assessed using Egemen’s prompt saved in [rubric.txt](rubric.txt). Identical inputs across and within files share one judgment. Each judgment represents a single model assessment. Parallel workers used the same rubric and marked ambiguity for review. Source instructions were treated as data. No independent annotator scores were supplied to the workers.
