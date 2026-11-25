@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -228,8 +229,12 @@ def run_comparison(
     details_name,
     pred_id_key="id",
     gold_id_key="example_id",
+    model_names=None,
 ):
-    """Compare every jsonl file in pred_dir with gold_file, print the metrics and save the outputs.
+    """Compare prediction jsonl files in pred_dir with gold_file, print the metrics and save the outputs.
+
+    If model_names is given, only <pred_dir>/<name>.jsonl for each name is compared;
+    otherwise every *.jsonl file in pred_dir is compared.
 
     Outputs written to output_dir:
       - <metrics_chart_name>.png:      bar chart of MAE / Jaccard per model
@@ -242,8 +247,15 @@ def run_comparison(
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    pred_files = (
+        [pred_dir / f"{name}.jsonl" for name in model_names]
+        if model_names is not None
+        else sorted(pred_dir.glob("*.jsonl"))
+    )
     details_by_model = {}
-    for pred_file in sorted(pred_dir.glob("*.jsonl")):
+    for pred_file in pred_files:
+        if not pred_file.exists():
+            raise FileNotFoundError(f"Prediction file not found: {pred_file}")
         details_by_model[pred_file.stem] = compare_predictions(
             pred_file, gold_file, pred_id_key, gold_id_key
         )
@@ -266,3 +278,18 @@ def run_comparison(
         output_dir / f"{details_name}.csv", index=False
     )
     return summary
+
+
+if __name__ == "__main__":
+    root_dir = Path(__file__).resolve().parents[2]
+    run_comparison(
+        pred_dir=root_dir / "data" / "test",
+        gold_file=root_dir / "data" / "raw" / "dev.jsonl",
+        output_dir=root_dir / "output" / "comparison",
+        metrics_chart_name="finetuned_comparison_metrics",
+        distribution_chart_name="finetuned_comparison_jaccard_distribution",
+        confusion_chart_name="finetuned_comparison_severity_confusion",
+        summary_name="finetuned_comparison_summary",
+        details_name="finetuned_comparison_details",
+        model_names=["finetuned_with_factors", "finetuned_without_factors"],
+    )
