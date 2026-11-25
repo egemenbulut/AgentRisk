@@ -76,6 +76,7 @@ NO_FACTORS_SYSTEM_PROMPT = (
 def main():
     """Run the whole pipeline step by step."""
     train_file = RAW_DIR / f"{TRAIN_NAME}.jsonl"
+    dev_file = RAW_DIR / f"{DEV_NAME}.jsonl"
     factors_file = PROCESSED_DIR / f"{FACTORS_NAME}.jsonl"
 
     # 1. Download the raw train/dev splits from Hugging Face (overwrites RAW_DIR)
@@ -110,7 +111,6 @@ def main():
     )'''
 
     # 8. Test data from the dev split with the factor-based prompt (no target)
-    dev_file = RAW_DIR / f"{DEV_NAME}.jsonl"
     '''dataset.create_llm_data(
         dev_file,
         PROCESSED_DIR,

@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -278,18 +277,3 @@ def run_comparison(
         output_dir / f"{details_name}.csv", index=False
     )
     return summary
-
-
-if __name__ == "__main__":
-    root_dir = Path(__file__).resolve().parents[2]
-    run_comparison(
-        pred_dir=root_dir / "data" / "test",
-        gold_file=root_dir / "data" / "raw" / "dev.jsonl",
-        output_dir=root_dir / "output" / "comparison",
-        metrics_chart_name="finetuned_comparison_metrics",
-        distribution_chart_name="finetuned_comparison_jaccard_distribution",
-        confusion_chart_name="finetuned_comparison_severity_confusion",
-        summary_name="finetuned_comparison_summary",
-        details_name="finetuned_comparison_details",
-        model_names=["finetuned_with_factors", "finetuned_without_factors"],
-    )
