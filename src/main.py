@@ -134,19 +134,28 @@ def main():
         id_key="example_id",
     )'''
 
-    # 10. Compare every prediction file in TEST_DIR with the dev gold labels (same ids)
-    comparison.run_comparison(
-        TEST_DIR,
+    # 10. Compare selected prediction files with the dev gold labels (same ids)
+    comparison_files = [
+        TEST_DIR / "base_with_factors.jsonl",
+        TEST_DIR / "base_without_factors.jsonl",
+        TEST_DIR / "finetuned_with_factors.jsonl",
+        TEST_DIR / "finetuned_without_factors.jsonl",
+    ]
+    details_by_model, summary = comparison.compare_models(
+        comparison_files,
         dev_file,
-        COMPARISON_OUTPUT_DIR,
-        COMPARISON_METRICS_CHART_NAME,
-        COMPARISON_DISTRIBUTION_CHART_NAME,
-        COMPARISON_CONFUSION_CHART_NAME,
-        COMPARISON_SUMMARY_NAME,
-        COMPARISON_DETAILS_NAME,
         pred_id_key="id",
         gold_id_key="example_id",
     )
+    comparison.plot_metrics(summary, COMPARISON_OUTPUT_DIR, COMPARISON_METRICS_CHART_NAME)
+    comparison.plot_jaccard_distribution(
+        details_by_model, COMPARISON_OUTPUT_DIR, COMPARISON_DISTRIBUTION_CHART_NAME
+    )
+    comparison.plot_severity_confusion(
+        details_by_model, COMPARISON_OUTPUT_DIR, COMPARISON_CONFUSION_CHART_NAME
+    )
+    comparison.write_summary(summary, COMPARISON_OUTPUT_DIR, COMPARISON_SUMMARY_NAME)
+    comparison.write_details(details_by_model, COMPARISON_OUTPUT_DIR, COMPARISON_DETAILS_NAME)
 
     # 11. Convert train.jsonl into SFT chat format without factors (direct risk_severity)
     '''dataset.create_llm_data(

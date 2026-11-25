@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -61,6 +62,13 @@ def compare_predictions(pred_file, gold_file, pred_id_key="id", gold_id_key="exa
     Returns a per-example DataFrame with gold/predicted severity, absolute error
     and the risk_domains / risk_drivers Jaccard scores.
     """
+    pred_file = Path(pred_file)
+    gold_file = Path(gold_file)
+    if not pred_file.exists():
+        raise FileNotFoundError(f"Prediction file not found: {pred_file}")
+    if not gold_file.exists():
+        raise FileNotFoundError(f"Gold file not found: {gold_file}")
+
     predictions = load_jsonl(pred_file, pred_id_key)
     gold = load_jsonl(gold_file, gold_id_key)
 
@@ -104,8 +112,47 @@ def summarize(details):
     }
 
 
+def build_summary(details_by_model):
+    """Build the aggregated summary DataFrame (one row per model) from per-model details."""
+    summary = pd.DataFrame(
+        {model: summarize(details) for model, details in details_by_model.items()}
+    ).T
+    count_columns = ["n_compared", "n_valid_severity", "n_missing_severity"]
+    summary[count_columns] = summary[count_columns].astype(int)
+    return summary
+
+
+def compare_models(pred_files, gold_file, pred_id_key="id", gold_id_key="example_id"):
+    """Compare each given prediction jsonl file with gold_file and print the summary.
+
+    pred_files can be:
+      - an iterable of file paths (model name is taken from each file's stem), or
+      - a dict mapping custom model names to file paths.
+
+    Returns (details_by_model, summary).
+    """
+    if isinstance(pred_files, dict):
+        items = [(name, Path(path)) for name, path in pred_files.items()]
+    else:
+        items = [(Path(path).stem, Path(path)) for path in pred_files]
+
+    if not items:
+        raise ValueError("pred_files must contain at least one prediction file")
+
+    details_by_model = {
+        model_name: compare_predictions(pred_file, gold_file, pred_id_key, gold_id_key)
+        for model_name, pred_file in items
+    }
+    summary = build_summary(details_by_model)
+    print("Comparison against gold labels:")
+    print(summary.round(4).to_string())
+    return details_by_model, summary
+
+
 def plot_metrics(summary, output_dir, file_name):
     """Save a bar chart of the three metrics per model as output_dir/<file_name>.png."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     models = summary.index.tolist()
     colors = plt.cm.tab10(np.arange(len(models)))
     fig, axes = plt.subplots(1, 3, figsize=(16, 5.5))
@@ -132,6 +179,8 @@ def plot_jaccard_distribution(details_by_model, output_dir, file_name):
     examples with that score; the count and share are written next to it and the
     model mean is marked with a red diamond.
     """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     models = list(details_by_model)
     max_bubble_area = 2500  # marker area (pt^2) of a value held by 100% of the examples
     fig, axes = plt.subplots(1, 2, figsize=(7 * 2, 7))
@@ -179,6 +228,8 @@ def plot_jaccard_distribution(details_by_model, output_dir, file_name):
 
 def plot_severity_confusion(details_by_model, output_dir, file_name):
     """Save gold vs. predicted risk_severity confusion matrices per model as output_dir/<file_name>.png."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     models = list(details_by_model)
     fig, axes = plt.subplots(1, len(models), figsize=(5.5 * len(models), 5), squeeze=False)
     for ax, model in zip(axes[0], models):
@@ -203,6 +254,8 @@ def plot_severity_confusion(details_by_model, output_dir, file_name):
 
 def write_summary(summary, output_dir, file_name):
     """Save the metric table as output_dir/<file_name>.txt."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     lines = [
         "Base vs. finetuned comparison against gold (dev) labels",
         "risk_severity: MAE over examples with a valid 1-5 prediction (lower is better)",
@@ -217,8 +270,17 @@ def write_summary(summary, output_dir, file_name):
     (output_dir / f"{file_name}.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def write_details(details_by_model, output_dir, file_name):
+    """Save per-example scores of every compared model as output_dir/<file_name>.csv."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    pd.concat(details_by_model, names=["model"]).reset_index(level=0).to_csv(
+        output_dir / f"{file_name}.csv", index=False
+    )
+
+
 def run_comparison(
-    pred_dir,
+    pred_files,
     gold_file,
     output_dir,
     metrics_chart_name,
@@ -228,12 +290,10 @@ def run_comparison(
     details_name,
     pred_id_key="id",
     gold_id_key="example_id",
-    model_names=None,
 ):
-    """Compare prediction jsonl files in pred_dir with gold_file, print the metrics and save the outputs.
+    """Compare the given prediction jsonl files with gold_file and save all outputs.
 
-    If model_names is given, only <pred_dir>/<name>.jsonl for each name is compared;
-    otherwise every *.jsonl file in pred_dir is compared.
+    pred_files can be a list of file paths or a dict mapping model names to file paths.
 
     Outputs written to output_dir:
       - <metrics_chart_name>.png:      bar chart of MAE / Jaccard per model
@@ -242,38 +302,14 @@ def run_comparison(
       - <summary_name>.txt:            metric table
       - <details_name>.csv:            per-example scores of every model
 
-    Returns the summary DataFrame (one row per prediction file).
+    Returns (details_by_model, summary).
     """
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    pred_files = (
-        [pred_dir / f"{name}.jsonl" for name in model_names]
-        if model_names is not None
-        else sorted(pred_dir.glob("*.jsonl"))
+    details_by_model, summary = compare_models(
+        pred_files, gold_file, pred_id_key=pred_id_key, gold_id_key=gold_id_key
     )
-    details_by_model = {}
-    for pred_file in pred_files:
-        if not pred_file.exists():
-            raise FileNotFoundError(f"Prediction file not found: {pred_file}")
-        details_by_model[pred_file.stem] = compare_predictions(
-            pred_file, gold_file, pred_id_key, gold_id_key
-        )
-    if not details_by_model:
-        raise FileNotFoundError(f"No .jsonl prediction files found in {pred_dir}")
-
-    summary = pd.DataFrame(
-        {model: summarize(details) for model, details in details_by_model.items()}
-    ).T
-    count_columns = ["n_compared", "n_valid_severity", "n_missing_severity"]
-    summary[count_columns] = summary[count_columns].astype(int)
-    print("Comparison against gold labels:")
-    print(summary.round(4).to_string())
-
     plot_metrics(summary, output_dir, metrics_chart_name)
     plot_jaccard_distribution(details_by_model, output_dir, distribution_chart_name)
     plot_severity_confusion(details_by_model, output_dir, confusion_chart_name)
     write_summary(summary, output_dir, summary_name)
-    pd.concat(details_by_model, names=["model"]).reset_index(level=0).to_csv(
-        output_dir / f"{details_name}.csv", index=False
-    )
-    return summary
+    write_details(details_by_model, output_dir, details_name)
+    return details_by_model, summary
