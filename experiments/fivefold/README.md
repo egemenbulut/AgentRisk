@@ -25,6 +25,14 @@ caffeinate -i python experiments/fivefold/llama.py run
 
 To time a single production fold first, append `--fold 0`. The full command skips completed folds, writes results under `output/llama-3b-fivefold/comparison/`, and prints the metrics. A new invocation can reuse successfully trained adapters and complete prediction files. An interruption during training restarts that fold’s training. Smoke results have a separate directory. Each fold’s `training.json` records validation losses and the best update. Its `done.json` records peak memory and wall time for the completing invocation.
 
+## Results for a morning meeting
+
+Run `bash experiments/fivefold/meeting.sh run` from the new checkout to install the dependencies, run the hardware check, then train the full five folds. Keep the Mac plugged in and the lid open. This version also evaluates 24 predetermined fold-0 validation examples after optimizer updates 8 and 20. The preview runs sequentially on the training model and never influences checkpoint selection. Predictions appear after the first example and then every four examples. Each comparison uses the matching Qwen fold on exactly the same example IDs.
+
+Open `output/meeting-summary.txt` at any point. The report refreshes every 30 seconds while running. It distinguishes preliminary samples, completed validation splits and dev scores. Once all folds finish, it also shows the final Qwen, Llama and ten-adapter dev scores. A Ctrl-C in the reporting terminal in watch mode stops only the monitor.
+
+If the previous overnight command is already running in `~/AgentRisk-llama`, leave it running. From the new checkout use `bash experiments/fivefold/meeting.sh watch`. This reads the existing log and completed predictions using CPU only. Workers started with the previous code produce their first Llama task metrics after their validation predictions have been written. Until then the summary includes existing Qwen results and available training or validation loss.
+
 ## What is held fixed
 
 | Setting | Qwen reference and Llama run |

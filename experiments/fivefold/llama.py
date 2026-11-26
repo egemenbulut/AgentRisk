@@ -83,7 +83,7 @@ def validation(model, encoded, keys):
     return total / count
 
 
-def train_adapter(model, encoded, train_keys, val_keys, fold, folder, smoke):
+def train_adapter(model, encoded, train_keys, val_keys, fold, folder, smoke, preview=None):
     seed = 3407 + fold
     rng = random.Random(seed)
     mx.random.seed(seed)
@@ -124,6 +124,12 @@ def train_adapter(model, encoded, train_keys, val_keys, fold, folder, smoke):
             if step == 1 or step % 10 == 0:
                 print(f"Fold {fold} update {step}/{updates} loss={total_loss/len(group):.4f} "
                       f"peak={mx.get_peak_memory()/1e9:.1f} GB", flush=True)
+            if preview is not None and step in (8, 20):
+                model.eval()
+                try:
+                    preview(model, step)
+                finally:
+                    model.train()
             if step % 20 == 0 or step == updates:
                 loss = validation(model, encoded, val_keys)
                 if not math.isfinite(loss):
@@ -163,6 +169,18 @@ def predict(model, tokenizer, inputs):
         yield {"example_id": key, "raw_text": raw, "parsed": parse(raw), "severity_probs": probabilities}
 
 
+def save_predictions(path, predictions):
+    """Publish snapshots with complete JSON lines while a split is being scored."""
+    partial = path.with_suffix(".partial.jsonl")
+    rows = []
+    for row in predictions:
+        rows.append(row)
+        if len(rows) == 1 or len(rows) % 4 == 0:
+            save_rows(partial, rows)
+    save_rows(path, rows)
+    partial.unlink(missing_ok=True)
+
+
 def run_fold(args, path, model_id, revision, folder):
     config = {"model": model_id, "revision": revision, "smoke": args.action == "smoke",
               "mlx_lm": version("mlx-lm"), "mlx": version("mlx"), "transformers": version("transformers"),
@@ -187,7 +205,16 @@ def run_fold(args, path, model_id, revision, folder):
         val_keys = val_keys[:1]
     if not (folder / "training.json").exists():
         model, _ = load(path)
-        train_adapter(model, encoded, train_keys, val_keys, args.fold, folder, smoke)
+        preview = None
+        if args.fold == 0 and not smoke and getattr(args, "meeting", False):
+            # Independent RNG and fixed held-out IDs. Preview scores never select checkpoints.
+            sample = random.Random(144).sample(sorted(val_keys), 24)
+            preview_inputs = {k: encoded[k][0][:encoded[k][1]] for k in sample}
+            def preview(model, step):
+                dest = folder / f"preview_{step}.jsonl"
+                print(f"Meeting preview at update {step} on {len(sample)} held-out cases", flush=True)
+                save_predictions(dest, predict(model, tokenizer, preview_inputs))
+        train_adapter(model, encoded, train_keys, val_keys, args.fold, folder, smoke, preview)
         del model
         mx.clear_cache()
     model, tokenizer = load(path, adapter_path=str(folder))
@@ -199,7 +226,7 @@ def run_fold(args, path, model_id, revision, folder):
         dest = folder / f"{split}.jsonl"
         if not dest.exists():
             print(f"Predicting {len(inputs)} {split} rows", flush=True)
-            save_rows(dest, predict(model, tokenizer, inputs))
+            save_predictions(dest, predict(model, tokenizer, inputs))
     save_json(folder / "done.json", {"config": config, "fold": args.fold,
                                     "elapsed_this_invocation_seconds": time.monotonic()-started,
                                     "peak_gb": mx.get_peak_memory()/1e9})
@@ -209,6 +236,7 @@ def run_fold(args, path, model_id, revision, folder):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("action", choices=["check", "smoke", "run"])
+    p.add_argument("--meeting", action="store_true", help="Also score a fixed fold-0 sample after updates 8 and 20")
     p.add_argument("--size", choices=MODELS, default="3b")
     p.add_argument("--fold", type=int, choices=range(5))
     p.add_argument("--output", type=Path, help="Output root for this run")
