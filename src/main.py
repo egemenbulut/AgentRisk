@@ -140,6 +140,7 @@ def main():
         TEST_DIR / "base_without_factors.jsonl",
         TEST_DIR / "finetuned_with_factors.jsonl",
         TEST_DIR / "finetuned_without_factors.jsonl",
+        TEST_DIR / "qwen25_7b_5fold_ensemble_dev.jsonl",
     ]
     details_by_model, summary = comparison.compare_models(
         comparison_files,
