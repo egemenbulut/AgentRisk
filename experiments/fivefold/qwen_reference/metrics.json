@@ -1,0 +1,112 @@
+{
+  "qwen_oof": {
+    "n": 568,
+    "malformed": 0,
+    "parsed_with_schema_errors": 7,
+    "severity_mae": 0.25,
+    "severity_accuracy": 0.7799295774647887,
+    "domains_jaccard": 0.8541666666666667,
+    "drivers_jaccard": 0.7265258215962441
+  },
+  "per_fold_qwen": {
+    "fold_0_val": {
+      "n": 117,
+      "malformed": 0,
+      "parsed_with_schema_errors": 0,
+      "severity_mae": 0.23076923076923078,
+      "severity_accuracy": 0.7692307692307693,
+      "domains_jaccard": 0.8675213675213675,
+      "drivers_jaccard": 0.7592592592592592
+    },
+    "fold_0_dev": {
+      "n": 143,
+      "malformed": 0,
+      "parsed_with_schema_errors": 0,
+      "severity_mae": 0.1888111888111888,
+      "severity_accuracy": 0.8321678321678322,
+      "domains_jaccard": 0.8484848484848484,
+      "drivers_jaccard": 0.7517482517482518
+    },
+    "fold_1_val": {
+      "n": 126,
+      "malformed": 0,
+      "parsed_with_schema_errors": 0,
+      "severity_mae": 0.23015873015873015,
+      "severity_accuracy": 0.8095238095238095,
+      "domains_jaccard": 0.8571428571428571,
+      "drivers_jaccard": 0.7685185185185185
+    },
+    "fold_1_dev": {
+      "n": 143,
+      "malformed": 0,
+      "parsed_with_schema_errors": 2,
+      "severity_mae": 0.24475524475524477,
+      "severity_accuracy": 0.7832167832167832,
+      "domains_jaccard": 0.8484848484848484,
+      "drivers_jaccard": 0.7435897435897435
+    },
+    "fold_2_val": {
+      "n": 96,
+      "malformed": 0,
+      "parsed_with_schema_errors": 4,
+      "severity_mae": 0.3020833333333333,
+      "severity_accuracy": 0.7395833333333334,
+      "domains_jaccard": 0.8420138888888888,
+      "drivers_jaccard": 0.6666666666666666
+    },
+    "fold_2_dev": {
+      "n": 143,
+      "malformed": 0,
+      "parsed_with_schema_errors": 7,
+      "severity_mae": 0.23776223776223776,
+      "severity_accuracy": 0.7692307692307693,
+      "domains_jaccard": 0.8356643356643356,
+      "drivers_jaccard": 0.7016317016317016
+    },
+    "fold_3_val": {
+      "n": 109,
+      "malformed": 0,
+      "parsed_with_schema_errors": 3,
+      "severity_mae": 0.29357798165137616,
+      "severity_accuracy": 0.7431192660550459,
+      "domains_jaccard": 0.8165137614678899,
+      "drivers_jaccard": 0.6926605504587156
+    },
+    "fold_3_dev": {
+      "n": 143,
+      "malformed": 0,
+      "parsed_with_schema_errors": 8,
+      "severity_mae": 0.23076923076923078,
+      "severity_accuracy": 0.7972027972027972,
+      "domains_jaccard": 0.8076923076923077,
+      "drivers_jaccard": 0.7307692307692307
+    },
+    "fold_4_val": {
+      "n": 120,
+      "malformed": 0,
+      "parsed_with_schema_errors": 0,
+      "severity_mae": 0.20833333333333334,
+      "severity_accuracy": 0.825,
+      "domains_jaccard": 0.8819444444444444,
+      "drivers_jaccard": 0.7291666666666666
+    },
+    "fold_4_dev": {
+      "n": 143,
+      "malformed": 0,
+      "parsed_with_schema_errors": 3,
+      "severity_mae": 0.17482517482517482,
+      "severity_accuracy": 0.8461538461538461,
+      "domains_jaccard": 0.837995337995338,
+      "drivers_jaccard": 0.7400932400932401
+    }
+  },
+  "qwen_dev": {
+    "n": 143,
+    "malformed": 0,
+    "parsed_with_schema_errors": 0,
+    "severity_mae": 0.16783216783216784,
+    "severity_accuracy": 0.8531468531468531,
+    "domains_jaccard": 0.8578088578088578,
+    "drivers_jaccard": 0.7750582750582751
+  }
+}

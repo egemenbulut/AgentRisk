@@ -9,10 +9,11 @@ This repository contains the TUM practicum experiments for SemEval 2027 Task 10.
 | Review the 112 cases left unlabeled in the Astra pass | `labels/gpt-6.2-astra-v1` | [Manual review workbook][workbook] · [Scoring rubric][rubric] |
 | Use Astra’s labels or prepare an independent Claude pass | `labels/gpt-6.2-astra-v1` | [Annotation release and export instructions][astra] |
 | Inspect Egemen’s AgentAuditor and R-Judge imports | `feature/extend-dataset` | [Source JSONL files][imports] |
+| Reproduce Egemen’s Qwen ensemble or run five Llama folds on Apple silicon | `experiments/llama-five-fold` | [Mac quick start, verified results and TUM run](experiments/fivefold/README.md) |
 | Fine-tune Qwen or compare training sets | `main` | [Experiment guide](experiments/qwen25/README.md) · [Synthetic dataset guide](data/synthetic_v1/README.md) |
 | Reproduce the original factor analysis or model comparisons | `main` | [Pipeline entry point](src/main.py) · [Saved predictions](data/test/) |
 
-## Data and experiments on `main`
+## Data and experiments
 
 | Location | Contents |
 | --- | --- |
