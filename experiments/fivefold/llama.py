@@ -71,6 +71,86 @@ def response_loss(model, tokens, start):
     return nn.losses.cross_entropy(logits.astype(mx.float32), ids[:, start:], reduction="mean")
 
 
+def pair_response_loss(model, examples):
+    """Sum two per-example means, projecting only answer positions to vocabulary logits."""
+    longest = max(len(tokens) for tokens, start in examples)
+    ids = mx.array([tokens + [0] * (longest - len(tokens)) for tokens, start in examples])
+    starts = mx.array([start for tokens, start in examples])[:, None]
+    lengths = [len(tokens) - start for tokens, start in examples]
+    offset = mx.arange(max(lengths))[None, :]
+    mask = offset < mx.array(lengths)[:, None]
+    # Right padding lies after the real tokens and cannot affect them in a causal model.
+    positions = mx.minimum(starts + offset, longest - 1)
+    rows = mx.arange(len(examples))[:, None]
+    hidden = model.model(ids[:, :-1])[rows, positions - 1]
+    logits = model.model.embed_tokens.as_linear(hidden) if model.args.tie_word_embeddings else model.lm_head(hidden)
+    losses = nn.losses.cross_entropy(logits.astype(mx.float32), ids[rows, positions])
+    return (mx.where(mask, losses, 0).sum(axis=1) / mx.array(lengths)).sum()
+
+
+def microbatches(examples, size, token_budget):
+    if size == 1:
+        return [[example] for example in examples]
+    # Reorder only within an optimizer update. Bound padding and the total token count.
+    ordered = sorted(examples, key=lambda ex: len(ex[0]))
+    batches = []
+    for example in ordered:
+        length = len(example[0])
+        if (batches and len(batches[-1]) == 1 and 2 * length <= token_budget
+                and length <= 1.25 * len(batches[-1][0][0])):
+            batches[-1].append(example)
+        else:
+            batches.append([example])
+    return batches
+
+
+def group_gradients(examples, size, budget, single_grad, pair_grad, model):
+    accum, total_loss = None, 0.
+    for batch in microbatches(examples, size, budget):
+        if len(batch) == 1:
+            loss, grad = single_grad(model, *batch[0])
+        else:
+            loss, grad = pair_grad(model, batch)
+        accum = grad if accum is None else tree_map(lambda a, b: a + b, accum, grad)
+        mx.eval(loss, accum)
+        total_loss += loss.item()
+    return total_loss, accum
+
+
+def benchmark_batches(model, encoded, keys, budget, single_grad, pair_grad, seed):
+    """Time identical workloads at fixed weights, with no optimizer or training RNG updates."""
+    shuffled = list(keys)
+    random.Random(seed).shuffle(shuffled)
+    groups = [[encoded[k] for k in shuffled[i:i+8]] for i in range(0, len(shuffled)-7, 8)]
+    if len(groups) < 2:
+        return {"size": 1, "reason": "insufficient benchmark examples"}
+    groups.sort(key=lambda group: sum(len(tokens) for tokens, start in group))
+    probes = [groups[len(groups)//2], groups[len(groups)*3//4]]
+    warm_pair = next((batch for group in probes for batch in microbatches(group, 2, budget)
+                      if len(batch) == 2), None)
+    if warm_pair is None:
+        return {"size": 1, "reason": "no eligible pairs in benchmark groups"}
+    print("Timing 1 vs 2 interactions per microbatch on the same training examples...", flush=True)
+    for size in (1, 2):
+        group_gradients(warm_pair, size, budget, single_grad, pair_grad, model)
+    timings = {1: 0., 2: 0.}
+    for group, order in zip(probes, ((1, 2), (2, 1))):
+        for size in order:
+            started = time.perf_counter()
+            group_gradients(group, size, budget, single_grad, pair_grad, model)
+            timings[size] += time.perf_counter() - started
+            print(f"  microbatch {size}: {timings[size]:.1f}s cumulative", flush=True)
+    return {"size": 2 if timings[2] <= 0.90 * timings[1] else 1,
+            "serial_seconds": timings[1], "paired_seconds": timings[2],
+            "timed_examples_per_mode": sum(map(len, probes)), "padded_token_budget": budget}
+
+
+def memory_error(error):
+    message = str(error).lower()
+    return isinstance(error, MemoryError) or any(term in message for term in
+        ("out of memory", "insufficient memory", "memory limit", "failed to allocate", "outofmemory"))
+
+
 def validation(model, encoded, keys):
     model.eval()
     total, count = 0., 0
@@ -96,6 +176,20 @@ def train_adapter(model, encoded, train_keys, val_keys, fold, folder, smoke, pre
     grad_checkpoint(model.layers[0])
     model.train()
     value_grad = nn.value_and_grad(model, response_loss)
+    pair_grad = nn.value_and_grad(model, pair_response_loss)
+    budget = max(len(encoded[k][0]) for k in train_keys)
+    size = 1
+    if not smoke and (folder.parent / "benchmark-batches").is_file():
+        try:
+            perf = benchmark_batches(model, encoded, train_keys, budget, value_grad, pair_grad, seed)
+        except (RuntimeError, MemoryError) as error:
+            if not memory_error(error):
+                raise
+            perf = {"size": 1, "reason": "memory allocation during benchmark"}
+        mx.clear_cache()
+        size = perf["size"]
+        save_json(folder / "microbatch.json", perf)
+        print(f"Using up to {size} interaction(s) per microbatch; effective batch 8.", flush=True)
     epochs = 1 if smoke else 3
     updates = epochs * math.ceil(len(train_keys) / 8)
     optimizer = optim.AdamW(learning_rate=2e-4, weight_decay=0.01, bias_correction=True)
@@ -104,12 +198,21 @@ def train_adapter(model, encoded, train_keys, val_keys, fold, folder, smoke, pre
         rng.shuffle(train_keys)
         for i in range(0, len(train_keys), 8):
             group = train_keys[i:i+8]
-            accum, total_loss = None, 0.
-            for key in group:
-                value, gradients = value_grad(model, *encoded[key])
-                accum = gradients if accum is None else tree_map(lambda a, b: a+b, accum, gradients)
-                mx.eval(value, accum)
-                total_loss += value.item()
+            examples = [encoded[k] for k in group]
+            retry_serial = False
+            try:
+                total_loss, accum = group_gradients(examples, size, budget, value_grad, pair_grad, model)
+            except (RuntimeError, MemoryError) as error:
+                if size == 1 or not memory_error(error):
+                    raise
+                size = 1
+                retry_serial = True
+                perf.update(size=1, fallback_update=step+1)
+                save_json(folder / "microbatch.json", perf)
+                print(f"Memory limit at update {step+1}; retrying serially.", flush=True)
+            if retry_serial:
+                mx.clear_cache()
+                total_loss, accum = group_gradients(examples, size, budget, value_grad, pair_grad, model)
             accum = tree_map(lambda x: x / len(group), accum)
             clipped, _norm = optim.clip_grad_norm(accum, 1.0)
             # Schedule uses optimizer updates; the smoke test takes a nonzero step.
@@ -117,7 +220,7 @@ def train_adapter(model, encoded, train_keys, val_keys, fold, folder, smoke, pre
             optimizer.learning_rate = 2e-4 * scale
             optimizer.update(model, clipped)
             mx.eval(model.trainable_parameters(), optimizer.state)
-            del accum, gradients, clipped
+            del accum, clipped
             step += 1
             if not math.isfinite(total_loss):
                 raise FloatingPointError(f"Nonfinite loss at update {step}")
